@@ -139,7 +139,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9) # 나중에 weight decay 포함시키기
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-total_epoch = 100
+total_epoch = 30
 train_cnt = 0
 train_loss = 0.0
 train_correct = 0
