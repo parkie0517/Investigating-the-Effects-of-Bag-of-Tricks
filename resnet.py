@@ -10,7 +10,7 @@ import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base+norm') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -23,7 +23,7 @@ print("Using device:", device)
 # Load and normalize CIFAR-10
 transform = transforms.Compose([
     transforms.ToTensor(), # basic
-    # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
 
 # Load the training dataset and create a trainloader
