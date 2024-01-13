@@ -40,9 +40,12 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=4,
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
+"""
+3. Define the Model (ResNet-50)
+"""
+net = torchvision.models.resnet50(weights=None).to(device) # Define ResNet-50
 
-# Define ResNet-50
-net = torchvision.models.resnet50(weights=None).to(device)
+
 
 # Define a Loss function and optimizer
 criterion = nn.CrossEntropyLoss()
