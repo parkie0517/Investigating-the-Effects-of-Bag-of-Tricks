@@ -1,9 +1,12 @@
-import torch
-import torchvision
-import torchvision.transforms as transforms
-import torch.nn as nn
-import torch.optim as optim
-from tensorboardX import SummaryWriter
+"""
+1. Import Libraries
+"""
+import torch # import torch
+import torchvision # import torchvision
+import torchvision.transforms as transforms # import transforms which is used for data pre-processing
+import torch.nn as nn # import torch.nn for defining and building neural networks
+import torch.optim as optim # import torch.optim for using optimizers
+from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
 
 writer = SummaryWriter('./logs/') # Write training results in './logs/' directory
 
