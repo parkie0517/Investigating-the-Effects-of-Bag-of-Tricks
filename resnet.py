@@ -8,26 +8,36 @@ import torch.nn as nn # import torch.nn for defining and building neural network
 import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
 
-writer = SummaryWriter('./logs/') # Write training results in './logs/' directory
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
-
+"""
+2. Load Dataset (CIFAR10)
+"""
 # Load and normalize CIFAR-10
 transform = transforms.Compose([
     transforms.ToTensor(),
     # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
+# Load the training dataset and create a trainloader
 trainset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=True,
                                         download=True, transform=transform)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
                                           shuffle=True, num_workers=2)
 
+# Load the testing dataset and create a testloader
 testset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=False,
                                        download=True, transform=transform)
 testloader = torch.utils.data.DataLoader(testset, batch_size=4,
                                          shuffle=False, num_workers=2)
+
+
+
+
+writer = SummaryWriter('./logs/') # Write training results in './logs/' directory
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
+
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
