@@ -179,8 +179,8 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     print(f'Epoch: {epoch}, Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')    
     
     # Write validation results to tensorboard
-    writer.add_scalar("Loss/train_1", train_loss/train_step, epoch)
-    writer.add_scalar("Acc/train_1", 100.0*train_correct/train_cnt, epoch)
+    writer.add_scalar("Loss/train", train_loss/train_step, epoch)
+    writer.add_scalar("Acc/train", 100.0*train_correct/train_cnt, epoch)
 
     val_cnt = 0
     val_loss = 0.0
@@ -202,8 +202,8 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     print(f'Epoch: {epoch}, Val Acc: {100.0*val_correct/val_cnt:.2f}%, Val Loss: {val_loss/val_step:.4f}')      
     
     # Write validation results to tensorboard
-    writer.add_scalar("Loss/val_1", val_loss/val_step, epoch)
-    writer.add_scalar("Acc/val_1", 100.0*val_correct/val_cnt, epoch)
+    writer.add_scalar("Loss/val", val_loss/val_step, epoch)
+    writer.add_scalar("Acc/val", 100.0*val_correct/val_cnt, epoch)
     
     writer.flush() # make sure the results are written properly into the storage
 
