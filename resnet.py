@@ -1,5 +1,5 @@
 """
-1. Import Libraries
+1. Import Libraries and do some settings
 """
 import torch # import torch
 import torchvision # import torchvision
@@ -7,6 +7,14 @@ import torchvision.transforms as transforms # import transforms which is used fo
 import torch.nn as nn # import torch.nn for defining and building neural networks
 import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
+
+# Tensorboard settings
+writer = SummaryWriter('./logs/') # Write training results in './logs/' directory
+
+# CUDA settings
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
 
 """
 2. Load Dataset (CIFAR10)
@@ -29,17 +37,9 @@ testset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10
 testloader = torch.utils.data.DataLoader(testset, batch_size=4,
                                          shuffle=False, num_workers=2)
 
-
-
-
-writer = SummaryWriter('./logs/') # Write training results in './logs/' directory
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
-
-
-
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
+
 
 # Define ResNet-50
 net = torchvision.models.resnet50(weights=None).to(device)
