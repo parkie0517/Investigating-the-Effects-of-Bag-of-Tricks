@@ -10,7 +10,7 @@ import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+norm') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -23,7 +23,7 @@ print("Using device:", device)
 # Load and normalize CIFAR-10
 transform = transforms.Compose([
     transforms.ToTensor(), # basic
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
 
 # Load the training dataset and create a trainloader
@@ -39,7 +39,6 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False,
 """
 3. Define the Model (ResNet-50)
 """
-
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -128,9 +127,9 @@ class ResNet(nn.Module):
 def ResNet50():
     return ResNet(Bottleneck, [3,4,6,3])
 
-model = ResNet50().to(device)
-# model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 and transfer the model to the device
-
+model = ResNet50() # Use cumtom made ResNet-50
+# model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 
+model = model.to(device) # Transfer the model to the device
 
 """
 4. Training
@@ -140,7 +139,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9) # 나중에 weight decay 포함시키기
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-total_epoch = 10
+total_epoch = 100
 train_cnt = 0
 train_loss = 0.0
 train_correct = 0
@@ -176,7 +175,10 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
         if step % 100 == 99: # print every 100 steps   
             print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')
         """
+    
     print(f'Epoch: {epoch}, Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')    
+    
+    # Write validation results to tensorboard
     writer.add_scalar("Loss/train_1", train_loss/train_step, epoch)
     writer.add_scalar("Acc/train_1", 100.0*train_correct/train_cnt, epoch)
 
@@ -196,12 +198,16 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
             val_step += 1
             val_cnt += batch[1].size(0)
             val_correct += predicted.eq(batch[1]).sum().item()
+    
     print(f'Epoch: {epoch}, Val Acc: {100.0*val_correct/val_cnt:.2f}%, Val Loss: {val_loss/val_step:.4f}')      
+    
+    # Write validation results to tensorboard
     writer.add_scalar("Loss/val_1", val_loss/val_step, epoch)
     writer.add_scalar("Acc/val_1", 100.0*val_correct/val_cnt, epoch)
-    writer.flush()
+    
+    writer.flush() # make sure the results are written properly into the storage
 
     # scheduler.step()
 
-writer.close()
+writer.close() # close writing the results to the storage
 print('Finished Training')
