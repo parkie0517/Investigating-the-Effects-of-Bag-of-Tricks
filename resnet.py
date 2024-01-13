@@ -21,21 +21,21 @@ print("Using device:", device)
 """
 # Load and normalize CIFAR-10
 transform = transforms.Compose([
-    transforms.ToTensor(),
-    # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    transforms.ToTensor(), # basic
+    # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
 
 # Load the training dataset and create a trainloader
 trainset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=True,
                                         download=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-                                          shuffle=True, num_workers=2)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=256,
+                                          shuffle=True, num_workers=8)
 
 # Load the testing dataset and create a testloader
 testset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=False,
                                        download=True, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-                                         shuffle=False, num_workers=2)
+testloader = torch.utils.data.DataLoader(testset, batch_size=256,
+                                         shuffle=False, num_workers=8)
 
 classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -43,44 +43,72 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship'
 """
 3. Define the Model (ResNet-50)
 """
-net = torchvision.models.resnet50(weights=None).to(device) # Define ResNet-50
+model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 and transfer the model to the device
 
 
-
+"""
+4. Training
+"""
 # Define a Loss function and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9) # 나중에 weight decay 포함시키기
+# scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-epoch_loss = 0.0
+total_epoch = 150
+train_cnt = 0
+train_loss = 0.0
+train_correct = 0
+val_cnt = 0
+val_loss = 0.0
+val_correct = 0
 
 # Train the network
-for epoch in range(2):  # loop over the dataset multiple times
+for epoch in range(total_epoch):  # loop over the dataset multiple times
+    train_cnt = 0
+    train_loss = 0.0
+    train_correct = 0
 
-    running_loss = 0.0
-    for i, data in enumerate(trainloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data[0].to(device), data[1].to(device) # Transfer the data to the device
+    for step, batch in enumerate(trainloader):
+        batch[0], batch[1] = batch[0].to(device), batch[1].to(device) # Transfer the data to the device
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
+        optimizer.zero_grad() # initialize the grdients to zero
 
-        # forward + backward + optimize
-        outputs = net(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+        outputs = model(batch[0]) # forward pass
+        loss = criterion(outputs, batch[1]) # calcuate the loss according to the output of the model
+        loss.backward() # calculate the gradients
+        optimizer.step() # update the gradients
 
-        # print statistics
-        running_loss += loss.item()
-        epoch_loss += loss.item()
-        if i % 100 == 99:    # print every 100 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 100))
-            running_loss = 0.0
-    epoch_loss = epoch_loss/len(trainloader)        
-    writer.add_scalar("Loss/train", epoch_loss, epoch)
-    
+        train_loss += loss.item()
+        _, predict = outputs.max(1)
+        train_cnt += batch[1].size(0) # count the total number of data
+        train_correct += predict.eq(batch[1]).sum().item()
+
+        if step % 100 == 99: # print every 100 steps
+            print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt}, Train Loss: {train_loss/train_cnt}')      
+
+    writer.add_scalar("Loss/train", train_loss/train_cnt, epoch)
+    writer.add_scalar("Acc/train", 100.0*train_correct/train_cnt, epoch)
+
+    val_cnt = 0
+    val_loss = 0.0
+    val_correct = 0
+
+    with torch.no_grad():
+        for step, batch in enumerate(trainloader):
+            batch[0], batch[1] = batch[0].to(device), batch[1].to(device) # Transfer the data to the device
+            outputs = model(batch[0])
+            loss = criterion(outputs, batch[1])
+
+            val_loss += loss.item()
+            _, predicted = outputs.max(1)
+            val_cnt += batch[1].size(0)
+            val_correct += predicted.eq(batch[1]).sum().item()
+    print(f'Epoch: {epoch}, Val Acc: {100.0*val_correct/val_cnt}, Val Loss: {val_loss/val_cnt}')      
+    writer.add_scalar("Loss/val", val_loss/val_cnt, epoch)
+    writer.add_scalar("Acc/val", 100.0*val_correct/val_cnt, epoch)
     writer.flush()
+
+    # scheduler.step()
 
 writer.close()
 print('Finished Training')
