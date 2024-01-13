@@ -49,7 +49,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9) # 나중에 weight decay 포함시키기
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-total_epoch = 150
+total_epoch = 100
 train_cnt = 0
 train_loss = 0.0
 train_correct = 0
@@ -60,7 +60,7 @@ val_correct = 0
 val_step = 0
 
 # Train the network
-for epoch in range(total_epoch):  # loop over the dataset multiple times
+for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     train_cnt = 0
     train_loss = 0.0
     train_correct = 0
