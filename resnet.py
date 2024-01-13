@@ -26,18 +26,13 @@ transform = transforms.Compose([
 ])
 
 # Load the training dataset and create a trainloader
-trainset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=True,
-                                        download=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=256,
-                                          shuffle=True, num_workers=8)
+trainset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=True, download=True, transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=8)
 
 # Load the testing dataset and create a testloader
-testset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=False,
-                                       download=True, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=256,
-                                         shuffle=False, num_workers=8)
-
-classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+testset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=False, download=True, transform=transform)
+testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False, num_workers=8)
+# classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
 """
@@ -86,10 +81,11 @@ for epoch in range(total_epoch):  # loop over the dataset multiple times
         train_step += 1
         train_cnt += batch[1].size(0) # count the total number of data
         train_correct += predict.eq(batch[1]).sum().item()
-
+        """
         if step % 100 == 99: # print every 100 steps   
-            print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt:.2f}, Train Loss: {train_loss/train_step:.4f}')
-
+            print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')
+        """
+    print(f'Epoch: {epoch}, Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')    
     writer.add_scalar("Loss/train", train_loss/train_step, epoch)
     writer.add_scalar("Acc/train", 100.0*train_correct/train_cnt, epoch)
 
@@ -109,7 +105,7 @@ for epoch in range(total_epoch):  # loop over the dataset multiple times
             val_step += 1
             val_cnt += batch[1].size(0)
             val_correct += predicted.eq(batch[1]).sum().item()
-    print(f'Epoch: {epoch}, Val Acc: {100.0*val_correct/val_cnt:.2f}, Val Loss: {val_loss/val_step:.4f}')      
+    print(f'Epoch: {epoch}, Val Acc: {100.0*val_correct/val_cnt:.2f}%, Val Loss: {val_loss/val_step:.4f}')      
     writer.add_scalar("Loss/val", val_loss/val_step, epoch)
     writer.add_scalar("Acc/val", 100.0*val_correct/val_cnt, epoch)
     writer.flush()
