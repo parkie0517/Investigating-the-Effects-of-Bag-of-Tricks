@@ -58,15 +58,18 @@ total_epoch = 150
 train_cnt = 0
 train_loss = 0.0
 train_correct = 0
+train_step = 0
 val_cnt = 0
 val_loss = 0.0
 val_correct = 0
+val_step = 0
 
 # Train the network
 for epoch in range(total_epoch):  # loop over the dataset multiple times
     train_cnt = 0
     train_loss = 0.0
     train_correct = 0
+    train_step = 0
 
     for step, batch in enumerate(trainloader):
         batch[0], batch[1] = batch[0].to(device), batch[1].to(device) # Transfer the data to the device
@@ -80,18 +83,20 @@ for epoch in range(total_epoch):  # loop over the dataset multiple times
 
         train_loss += loss.item()
         _, predict = outputs.max(1)
+        train_step += 1
         train_cnt += batch[1].size(0) # count the total number of data
         train_correct += predict.eq(batch[1]).sum().item()
 
-        if step % 100 == 99: # print every 100 steps
-            print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt}, Train Loss: {train_loss/train_cnt}')      
+        if step % 100 == 99: # print every 100 steps   
+            print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt:.2f}, Train Loss: {train_loss/train_step:.4f}')
 
-    writer.add_scalar("Loss/train", train_loss/train_cnt, epoch)
+    writer.add_scalar("Loss/train", train_loss/train_step, epoch)
     writer.add_scalar("Acc/train", 100.0*train_correct/train_cnt, epoch)
 
     val_cnt = 0
     val_loss = 0.0
     val_correct = 0
+    val_step = 0
 
     with torch.no_grad():
         for step, batch in enumerate(trainloader):
@@ -101,10 +106,11 @@ for epoch in range(total_epoch):  # loop over the dataset multiple times
 
             val_loss += loss.item()
             _, predicted = outputs.max(1)
+            val_step += 1
             val_cnt += batch[1].size(0)
             val_correct += predicted.eq(batch[1]).sum().item()
-    print(f'Epoch: {epoch}, Val Acc: {100.0*val_correct/val_cnt}, Val Loss: {val_loss/val_cnt}')      
-    writer.add_scalar("Loss/val", val_loss/val_cnt, epoch)
+    print(f'Epoch: {epoch}, Val Acc: {100.0*val_correct/val_cnt:.2f}, Val Loss: {val_loss/val_step:.4f}')      
+    writer.add_scalar("Loss/val", val_loss/val_step, epoch)
     writer.add_scalar("Acc/val", 100.0*val_correct/val_cnt, epoch)
     writer.flush()
 
