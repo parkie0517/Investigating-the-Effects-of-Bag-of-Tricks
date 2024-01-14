@@ -10,7 +10,7 @@ import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+norm') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base+norm+gt') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -20,10 +20,15 @@ print("Using device:", device)
 """
 2. Load Dataset (CIFAR10)
 """
-# Load and normalize CIFAR-10
+# Load and normalize CIFAR-10 with additional transformations
 transform = transforms.Compose([
-    transforms.ToTensor(), # basic
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    transforms.RandomHorizontalFlip(),  # Randomly flip the images horizontally
+    transforms.RandomResizedCrop( # randomly resize and crop
+        (32, 32),  # Desired output size of the crop
+        scale=(0.8, 1.0) # Range of size of the randomly crop area is going to be from 0% ~ 20% of the original image
+    ),
+    transforms.ToTensor(),  # convert imgaes to tesnsor type
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),  # normalize
 ])
 
 # Load the training dataset and create a trainloader
