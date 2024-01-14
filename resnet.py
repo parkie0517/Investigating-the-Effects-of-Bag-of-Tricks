@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter # import tensorbardX which is used for vi
 import numpy as np
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+norm(2nd_try)') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base+norm+mix') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -160,7 +160,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9) # 나중에 weight decay 포함시키기
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
-total_epoch = 30
+total_epoch = 50
 train_cnt = 0
 train_loss = 0.0
 train_correct = 0
@@ -189,7 +189,7 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
         optimizer.step() # update the gradients
 
         train_loss += loss.item()
-        _, predict = outputs.max(1)
+        _, predicted = outputs.max(1)
         train_step += 1
         train_cnt += targets.size(0) # count the total number of data
         train_correct += (lam * predicted.eq(targets_a).sum().float() + (1 - lam) * predicted.eq(targets_b).sum().float()).item() # 
