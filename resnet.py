@@ -177,21 +177,23 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     train_correct = 0
     train_step = 0
 
-    for step, batch in enumerate(trainloader):
-        batch[0], batch[1] = batch[0].to(device), batch[1].to(device) # Transfer the data to the device
+    for step, (inputs, targets) in enumerate(trainloader):
+        inputs, targets = inputs.to(device), targets.to(device)
+        inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, alpha=1.0, device=device)
 
         optimizer.zero_grad() # initialize the grdients to zero
 
-        outputs = model(batch[0]) # forward pass
-        loss = criterion(outputs, batch[1]) # calcuate the loss according to the output of the model
+        outputs = model(inputs) # forward pass
+        loss = lam * criterion(outputs, targets_a) + (1 - lam) * criterion(outputs, targets_b)
         loss.backward() # calculate the gradients
         optimizer.step() # update the gradients
 
         train_loss += loss.item()
         _, predict = outputs.max(1)
         train_step += 1
-        train_cnt += batch[1].size(0) # count the total number of data
-        train_correct += predict.eq(batch[1]).sum().item()
+        train_cnt += targets.size(0) # count the total number of data
+        train_correct += (lam * predicted.eq(targets_a).sum().float() + (1 - lam) * predicted.eq(targets_b).sum().float()).item() # 
+        
         """
         if step % 100 == 99: # print every 100 steps   
             print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')
