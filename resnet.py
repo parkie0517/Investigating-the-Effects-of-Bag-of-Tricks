@@ -8,6 +8,7 @@ import torch.nn as nn # import torch.nn for defining and building neural network
 import torch.nn.functional as F # import functional for using the activation functions
 import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
+import numpy as np
 
 # Tensorboard settings
 writer = SummaryWriter('./logs/base+norm(2nd_try)') # Write training results in './logs/' directory
@@ -20,6 +21,25 @@ print("Using device:", device)
 """
 2. Load Dataset (CIFAR10)
 """
+# define the mixup function
+def mixup_data(x, y, alpha=1.0, device='cpu'):
+    '''Returns mixed inputs, pairs of targets, and lambda'''
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha) # selects the lamda value from the beta distribution
+    else: # does not use mixup
+        lam = 1
+
+    batch_size = x.size(0)
+    index = torch.randperm(batch_size).to(device) # creates a random permutation and returns the list of indices
+    """
+        below is an examle of how randperm is used and its output
+        torch.randperm(4)
+            -> tensor([2, 1, 0, 3])
+    """
+    mixed_x = lam * x + (1 - lam) * x[index, :] # performs mixup using the lambda value
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam # returns the mixed input, pairs of targets, and lambda value
+
 # Load and normalize CIFAR-10 with additional transformations
 transform = transforms.Compose([
     # transforms.RandomHorizontalFlip(),  # Randomly flip the images horizontally
