@@ -150,6 +150,30 @@ model = model.to(device) # Transfer the model to the device
 """
 4. Training
 """
+# Define the Learning Rate Warmup class
+class LRWarpup(torch.optim.lr_scheduler._LRScheduler):
+    def __init__(self, optimizer, multiplier, total_epoch, after_scheduler=None):
+        self.multiplier = multiplier
+        self.total_epoch = total_epoch
+        self.after_scheduler = after_scheduler
+        self.finished = False
+        super().__init__(optimizer)
+
+    def get_lr(self):
+        if self.last_epoch >= self.total_epoch:
+            if not self.finished and self.after_scheduler:
+                self.finished = True
+                self.after_scheduler.base_lrs = [base_lr * self.multiplier for base_lr in self.base_lrs]
+            return self.after_scheduler.get_last_lr()
+        return [base_lr * ((self.multiplier - 1.) * self.last_epoch / self.total_epoch + 1.) for base_lr in self.base_lrs]
+
+    def step(self, epoch=None):
+        if self.finished and self.after_scheduler:
+            return self.after_scheduler.step(epoch)
+        else:
+            return super(LRWarpup, self).step(epoch)
+
+
 # Loss function
 criterion = nn.CrossEntropyLoss()
 
@@ -160,6 +184,8 @@ optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-
 # LR Scheduler
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=90)
+lr_warmup_scheduler = LRWarpup(optimizer, multiplier=1, total_epoch=5, after_scheduler=scheduler) # Learning Rate Warmup Scheduler
+
 
 total_epoch = 90
 train_cnt = 0
@@ -229,7 +255,8 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     
     writer.flush() # make sure the results are written properly into the storage
 
-    scheduler.step() # make sure to use this code to make changes to the learning rate
-
+    # scheduler.step() # make sure to use this code to make changes to the learning rate
+    lr_warmup_scheduler.step() # Use lr warmup
+    
 writer.close() # close writing the results to the storage
 print('Finished Training')
