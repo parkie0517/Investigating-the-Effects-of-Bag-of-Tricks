@@ -8,9 +8,10 @@ import torch.nn as nn # import torch.nn for defining and building neural network
 import torch.nn.functional as F # import functional for using the activation functions
 import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
+import numpy as np
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+cosine+warmup') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base+cosine+mixup') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -20,6 +21,26 @@ print("Using device:", device)
 """
 2. Load Dataset (CIFAR10)
 """
+def mixup(x, y, alpha=1.0, use_cuda=True):
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    batch_size = x.size()[0]
+    if use_cuda:
+        index = torch.randperm(batch_size).cuda()
+    else:
+        index = torch.randperm(batch_size)
+
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam # Returns mixed inputs, pairs of targets, and lambda values
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
+
 # Load and normalize CIFAR-10 with additional transformations
 transform_train = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -204,21 +225,27 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     train_correct = 0
     train_step = 0
 
-    for step, batch in enumerate(trainloader):
-        batch[0], batch[1] = batch[0].to(device), batch[1].to(device) # Transfer the data to the device
+    for step, (inputs, targets) in enumerate(trainloader):
+        inputs, targets = inputs.to(device), targets.to(device) # Transfer the data to the device
+        # Apply mixup
+        mixed_inputs, targets_a, targets_b, lam = mixup(inputs, targets, alpha=1.0, use_cuda=True)
 
         optimizer.zero_grad() # initialize the grdients to zero
 
-        outputs = model(batch[0]) # forward pass
-        loss = criterion(outputs, batch[1]) # calcuate the loss according to the output of the model
+        outputs = model(mixed_inputs) # forward pass
+
+        # calculate the loss!
+        # loss = criterion(outputs, batch[1]) # cross entropy loss
+        loss = mixup_criterion(criterion, outputs, targets_a, targets_b, lam) # mixup cross entropy loss
+        
         loss.backward() # calculate the gradients
         optimizer.step() # update the gradients
 
         train_loss += loss.item()
         _, predict = outputs.max(1)
         train_step += 1
-        train_cnt += batch[1].size(0) # count the total number of data
-        train_correct += predict.eq(batch[1]).sum().item()
+        train_cnt += targets.size(0) # count the total number of data
+        train_correct += (lam * predicted.eq(targets_a).sum().float() + (1 - lam) * predicted.eq(targets_b).sum().float()).item()
         """
         if step % 100 == 99: # print every 100 steps   
             print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')
