@@ -8,10 +8,9 @@ import torch.nn as nn # import torch.nn for defining and building neural network
 import torch.nn.functional as F # import functional for using the activation functions
 import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
-import numpy as np
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+norm+mix') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base+cosine+warmup') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -21,39 +20,28 @@ print("Using device:", device)
 """
 2. Load Dataset (CIFAR10)
 """
-# define the mixup function
-def mixup_data(x, y, alpha=1.0, device='cpu'):
-    '''Returns mixed inputs, pairs of targets, and lambda'''
-    if alpha > 0:
-        lam = np.random.beta(alpha, alpha) # selects the lamda value from the beta distribution
-    else: # does not use mixup
-        lam = 1
-
-    batch_size = x.size(0)
-    index = torch.randperm(batch_size).to(device) # creates a random permutation and returns the list of indices
-    """
-        below is an examle of how randperm is used and its output
-        torch.randperm(4)
-            -> tensor([2, 1, 0, 3])
-    """
-    mixed_x = lam * x + (1 - lam) * x[index, :] # performs mixup using the lambda value
-    y_a, y_b = y, y[index]
-    return mixed_x, y_a, y_b, lam # returns the mixed input, pairs of targets, and lambda value
-
 # Load and normalize CIFAR-10 with additional transformations
-transform = transforms.Compose([
-    # transforms.RandomHorizontalFlip(),  # Randomly flip the images horizontally
-    transforms.ToTensor(),  # convert imgaes to tesnsor type
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),  # normalize
+transform_train = transforms.Compose([
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+])
+
+transform_test = transforms.Compose([
+    transforms.ToTensor(),
+    # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 
 # Load the training dataset and create a trainloader
-trainset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=True, download=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=8)
+trainset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=True, download=True, transform=transform_train)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=256, shuffle=True, num_workers=16)
 
 # Load the testing dataset and create a testloader
-testset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=False, download=True, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=256, shuffle=False, num_workers=8)
+testset = torchvision.datasets.CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=False, download=True, transform=transform_test)
+testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=16)
 # classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
@@ -65,15 +53,18 @@ class BasicBlock(nn.Module):
 
     def __init__(self, in_planes, planes, stride=1):
         super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(
+            in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
+                               stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
+                nn.Conv2d(in_planes, self.expansion*planes,
+                          kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(self.expansion*planes)
             )
 
@@ -92,15 +83,18 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
+                               stride=stride, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
-        self.conv3 = nn.Conv2d(planes, self.expansion*planes, kernel_size=1, bias=False)
+        self.conv3 = nn.Conv2d(planes, self.expansion *
+                               planes, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(self.expansion*planes)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
+                nn.Conv2d(in_planes, self.expansion*planes,
+                          kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(self.expansion*planes)
             )
 
@@ -118,7 +112,8 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.in_planes = 64
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3,
+                               stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
@@ -144,9 +139,9 @@ class ResNet(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
-    
+
 def ResNet50():
-    return ResNet(Bottleneck, [3,4,6,3])
+    return ResNet(Bottleneck, [3, 4, 6, 3])
 
 model = ResNet50() # Use cumtom made ResNet-50
 # model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 
@@ -155,12 +150,44 @@ model = model.to(device) # Transfer the model to the device
 """
 4. Training
 """
-# Define a Loss function and optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9) # 나중에 weight decay 포함시키기
-# scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+# Define the Learning Rate Warmup class
+class LRWarpup(torch.optim.lr_scheduler._LRScheduler):
+    def __init__(self, optimizer, multiplier, total_epoch, after_scheduler=None):
+        self.multiplier = multiplier
+        self.total_epoch = total_epoch
+        self.after_scheduler = after_scheduler
+        self.finished = False
+        super().__init__(optimizer)
 
-total_epoch = 50
+    def get_lr(self):
+        if self.last_epoch >= self.total_epoch:
+            if not self.finished and self.after_scheduler:
+                self.finished = True
+                self.after_scheduler.base_lrs = [base_lr * self.multiplier for base_lr in self.base_lrs]
+            return self.after_scheduler.get_last_lr()
+        return [base_lr * ((self.multiplier - 1.) * self.last_epoch / self.total_epoch + 1.) for base_lr in self.base_lrs]
+
+    def step(self, epoch=None):
+        if self.finished and self.after_scheduler:
+            return self.after_scheduler.step(epoch)
+        else:
+            return super(LRWarpup, self).step(epoch)
+
+
+# Loss function
+criterion = nn.CrossEntropyLoss()
+
+# Optimizer
+# optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9) # 나중에 weight decay 포함시키기
+optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
+
+# LR Scheduler (Choose one from the bottom)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1) # Step Decay
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=90) # Cosine Decay
+# lr_warmup_scheduler = LRWarpup(optimizer, multiplier=1, total_epoch=5, after_scheduler=scheduler) # Learning Rate Warmup Scheduler
+
+
+total_epoch = 90
 train_cnt = 0
 train_loss = 0.0
 train_correct = 0
@@ -177,23 +204,21 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     train_correct = 0
     train_step = 0
 
-    for step, (inputs, targets) in enumerate(trainloader):
-        inputs, targets = inputs.to(device), targets.to(device)
-        inputs, targets_a, targets_b, lam = mixup_data(inputs, targets, alpha=1.0, device=device)
+    for step, batch in enumerate(trainloader):
+        batch[0], batch[1] = batch[0].to(device), batch[1].to(device) # Transfer the data to the device
 
         optimizer.zero_grad() # initialize the grdients to zero
 
-        outputs = model(inputs) # forward pass
-        loss = lam * criterion(outputs, targets_a) + (1 - lam) * criterion(outputs, targets_b)
+        outputs = model(batch[0]) # forward pass
+        loss = criterion(outputs, batch[1]) # calcuate the loss according to the output of the model
         loss.backward() # calculate the gradients
         optimizer.step() # update the gradients
 
         train_loss += loss.item()
-        _, predicted = outputs.max(1)
+        _, predict = outputs.max(1)
         train_step += 1
-        train_cnt += targets.size(0) # count the total number of data
-        train_correct += (lam * predicted.eq(targets_a).sum().float() + (1 - lam) * predicted.eq(targets_b).sum().float()).item() # 
-        
+        train_cnt += batch[1].size(0) # count the total number of data
+        train_correct += predict.eq(batch[1]).sum().item()
         """
         if step % 100 == 99: # print every 100 steps   
             print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')
@@ -211,7 +236,7 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     val_step = 0
 
     with torch.no_grad():
-        for step, batch in enumerate(trainloader):
+        for step, batch in enumerate(testloader):
             batch[0], batch[1] = batch[0].to(device), batch[1].to(device) # Transfer the data to the device
             outputs = model(batch[0])
             loss = criterion(outputs, batch[1])
@@ -230,7 +255,8 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     
     writer.flush() # make sure the results are written properly into the storage
 
-    # scheduler.step()
+    scheduler.step() # updates the learning rate
+    # lr_warmup_scheduler.step() # Use lr warmup
 
 writer.close() # close writing the results to the storage
 print('Finished Training')
