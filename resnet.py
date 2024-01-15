@@ -10,7 +10,7 @@ import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base+cosine') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -158,8 +158,8 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
 
 # LR Scheduler
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-# scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=90)
 
 total_epoch = 90
 train_cnt = 0
@@ -229,7 +229,7 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     
     writer.flush() # make sure the results are written properly into the storage
 
-    # scheduler.step()
+    scheduler.step() # make sure to use this code to make changes to the learning rate
 
 writer.close() # close writing the results to the storage
 print('Finished Training')
