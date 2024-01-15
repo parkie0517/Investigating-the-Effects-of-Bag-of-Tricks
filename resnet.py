@@ -242,7 +242,7 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
         optimizer.step() # update the gradients
 
         train_loss += loss.item()
-        _, predict = outputs.max(1)
+        _, predicted = outputs.max(1)
         train_step += 1
         train_cnt += targets.size(0) # count the total number of data
         train_correct += (lam * predicted.eq(targets_a).sum().float() + (1 - lam) * predicted.eq(targets_b).sum().float()).item()
