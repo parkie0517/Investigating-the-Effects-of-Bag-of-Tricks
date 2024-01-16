@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter # import tensorbardX which is used for vi
 import numpy as np
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+cosine+warmup+mixup+dropout') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base+cosine+warmup+mixup+zero') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -80,6 +80,7 @@ class BasicBlock(nn.Module):
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
+        self.bn2.weight.data.zero_() # initializes the gamma value to zero
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -110,6 +111,7 @@ class Bottleneck(nn.Module):
         self.conv3 = nn.Conv2d(planes, self.expansion *
                                planes, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(self.expansion*planes)
+        self.bn3.weight.data.zero_() # initializes the gamma value to zero
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -164,7 +166,7 @@ class ResNet(nn.Module):
         return out
 
 def ResNet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3], dropout_rate=0.5) # change the dropout rate to a different value. dropout=0 is the same as not applying any dropout.
+    return ResNet(Bottleneck, [3, 4, 6, 3], dropout_rate=0.0) # change the dropout rate to a different value. dropout=0 is the same as not applying any dropout.
 
 model = ResNet50() # Use cumtom made ResNet-50
 # model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 
