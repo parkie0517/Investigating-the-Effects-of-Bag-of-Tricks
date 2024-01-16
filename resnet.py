@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter # import tensorbardX which is used for vi
 import numpy as np
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/test') # Write training results in './logs/' directory ####
+writer = SummaryWriter('./logs/base+cosine+warmup+mixup+dropout(0.2)+zero') # Write training results in './logs/' directory ####
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -166,7 +166,7 @@ class ResNet(nn.Module):
         return out
 
 def ResNet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3], dropout_rate=0.5) # change the dropout rate to a different value. dropout=0 is the same as not applying any dropout.
+    return ResNet(Bottleneck, [3, 4, 6, 3], dropout_rate=0.2) # change the dropout rate to a different value. dropout=0 is the same as not applying any dropout.
 
 model = ResNet50() # Use cumtom made ResNet-50
 # model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 
