@@ -131,7 +131,7 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10, dropout_rate=0.5): # Add dropout code
+    def __init__(self, block, num_blocks, num_classes=10, dropout_rate=0.5): # Set default dropout_rate to 0.5
         super(ResNet, self).__init__()
         self.in_planes = 64
 
