@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter # import tensorbardX which is used for vi
 import numpy as np
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+cosine+warmup+mixup+dropout+zero') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/test') # Write training results in './logs/' directory ####
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -234,6 +234,7 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
         # Apply mixup
         mixed_inputs, targets_a, targets_b, lam = mixup(inputs, targets, alpha=1.0, use_cuda=True)
 
+        model.train() # 
         optimizer.zero_grad() # initialize the grdients to zero
 
         outputs = model(mixed_inputs) # forward pass
