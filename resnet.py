@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter # import tensorbardX which is used for vi
 import numpy as np
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+cosine+warmup+mixup') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/base+cosine+warmup+mixup+dropout') # Write training results in './logs/' directory
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -129,7 +129,7 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
+    def __init__(self, block, num_blocks, num_classes=10, dropout_rate=0.5): # Add dropout code
         super(ResNet, self).__init__()
         self.in_planes = 64
 
@@ -140,6 +140,7 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
+        self.dropout = nn.Dropout(dropout_rate) # Add a dropout layer!
         self.linear = nn.Linear(512*block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -158,11 +159,12 @@ class ResNet(nn.Module):
         out = self.layer4(out)
         out = F.avg_pool2d(out, 4)
         out = out.view(out.size(0), -1)
+        out = self.dropout(out) # Apply dropout!!
         out = self.linear(out)
         return out
 
 def ResNet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3])
+    return ResNet(Bottleneck, [3, 4, 6, 3], dropout_rate=0.5) # change the dropout rate to a different value
 
 model = ResNet50() # Use cumtom made ResNet-50
 # model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 
