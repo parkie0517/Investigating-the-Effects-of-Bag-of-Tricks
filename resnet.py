@@ -166,7 +166,7 @@ class ResNet(nn.Module):
         return out
 
 def ResNet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3], dropout_rate=0.0) # change the dropout rate to a different value. dropout=0 is the same as not applying any dropout.
+    return ResNet(Bottleneck, [3, 4, 6, 3], dropout_rate=0.5) # change the dropout rate to a different value. dropout=0 is the same as not applying any dropout.
 
 model = ResNet50() # Use cumtom made ResNet-50
 # model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 
