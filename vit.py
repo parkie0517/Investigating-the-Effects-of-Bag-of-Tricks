@@ -202,6 +202,8 @@ def main():
     # Set information about the training process
     """
         5. Choosing the loss function
+            - Cross entropy loss
+            - Label smoothing cross entropy loss
     """
     # criterion = nn.CrossEntropyLoss() # Cross entropy loss
     criterion = LabelSmoothingCrossEntropy(smoothing=0.1) # Label smoothing loss
@@ -270,6 +272,6 @@ def main():
 
 if __name__ == '__main__':
     # Tensorboard setting
-    writer = SummaryWriter('./logs/vit/basic') # Writes training results in './logs/' directory
+    writer = SummaryWriter('./logs/vit/basic+label') # Writes training results in './logs/' directory
     main()
     writer.close() # Must include this code when finish training results
