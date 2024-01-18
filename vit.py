@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from timm.models.layers import trunc_normal_
 from torchvision.datasets.cifar import CIFAR10
 from tensorboardX import SummaryWriter
+import numpy as np # Added numpy for mixup
 
 
 """
@@ -175,6 +176,32 @@ class WarmupScheduler:
                 param_group['lr'] = lr
         self.current_epoch += 1
 
+
+def mixup_data(x, y, alpha=1.0, use_cuda=True):
+    """
+        Returns mixed inputs, pairs of targets, and lambda
+    """
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    batch_size = x.size()[0]
+    if use_cuda:
+        index = torch.randperm(batch_size).cuda()
+    else:
+        index = torch.randperm(batch_size)
+
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    mixed_y = lam * y + (1 - lam) * y[index]
+    return mixed_x, mixed_y, lam
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    """
+        Loss function used for mixup
+    """
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
 def main():
     # argparser
     parer = argparse.ArgumentParser()
@@ -249,10 +276,12 @@ def main():
         for idx, (img, target) in enumerate(train_loader):
             img = img.to(device)  # [N, 3, 32, 32]
             target = target.to(device)  # [N]
+            img, target_a, target_b, lam = mixup_data(img, target, alpha=1.0, use_cuda=True)
 
             optimizer.zero_grad()
             output = model(img)  # [N, 10]
-            loss = criterion(output, target)
+            # loss = criterion(output, target) # ordinary cross entropy loss
+            loss = mixup_criterion(criterion, output, target_a, target_b, lam)
 
             loss.backward() # Calculates the gradients for updates
             optimizer.step() # Updates the parameters
