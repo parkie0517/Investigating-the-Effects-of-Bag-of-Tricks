@@ -112,7 +112,7 @@ class Block(nn.Module):
 
 # Define the ViT model
 class ViT(nn.Module):
-    def __init__(self, img_size=32, patch_size=4, in_chans=3, num_classes=10, embed_dim=192, depth=12,
+    def __init__(self, img_size=32, patch_size=4, in_chans=3, num_classes=10, embed_dim=384, depth=6,
                  num_heads=12, mlp_ratio=2., qkv_bias=False, drop_rate=0., attn_drop_rate=0.):
         super().__init__()
         self.num_classes = num_classes
@@ -138,14 +138,14 @@ class ViT(nn.Module):
         x = self.patch_embed(x)
         x = self.blocks(x)
         x = self.norm(x)
-        x = x[:, 0] # Select the first token from each sequence, which is the classification token  
+        x = x[:, 0] # Selects the first column from x, which is the classification token  
         x = self.head(x) # pass the first token into the classification head
         return x
 
 def main():
     # argparser
     parer = argparse.ArgumentParser()
-    parer.add_argument('--epoch', type=int, default=100)
+    parer.add_argument('--epoch', type=int, default=90)
     parer.add_argument('--batch_size', type=int, default=256)
     parer.add_argument('--lr', type=float, default=0.001) # this is the same as 1e-3
     parer.add_argument('--name', type=str, default='vit_cifar10')
