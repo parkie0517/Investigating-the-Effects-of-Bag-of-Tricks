@@ -156,6 +156,24 @@ class LabelSmoothingCrossEntropy(nn.Module):
         weight.scatter_(-1, target.unsqueeze(-1), (1. - self.smoothing))
         loss = (-weight * log_prob).sum(dim=-1).mean()
         return loss
+    
+class WarmupScheduler:
+    """
+        This is an implementation of a custom learning rate warmup code
+    """
+    def __init__(self, optimizer, warmup_epochs, initial_lr, peak_lr):
+        self.optimizer = optimizer
+        self.warmup_epochs = warmup_epochs
+        self.initial_lr = initial_lr
+        self.peak_lr = peak_lr
+        self.current_epoch = 0
+
+    def step(self):
+        if self.current_epoch < self.warmup_epochs:
+            lr = ((self.peak_lr - self.initial_lr) / self.warmup_epochs) * self.current_epoch + self.initial_lr
+            for param_group in self.optimizer.param_groups:
+                param_group['lr'] = lr
+        self.current_epoch += 1
 
 def main():
     # argparser
@@ -208,14 +226,23 @@ def main():
     # criterion = nn.CrossEntropyLoss() # Cross entropy loss
     criterion = LabelSmoothingCrossEntropy(smoothing=0.1) # Label smoothing loss
 
+    # Optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=ops.lr, weight_decay=5e-5)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=ops.epoch, eta_min=0) # eta_min is the value that becomes the final LR
 
+    # learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=ops.epoch, eta_min=0) # eta_min is the value that becomes the final LR
+    warmup_scheduler = WarmupScheduler(optimizer, warmup_epochs=5, initial_lr=1e-6, peak_lr=ops.lr)
     """
         6. Training and Testing
     """
     print("training...")
     for epoch in range(1, ops.epoch+1): # From 1 ~ ops.epoch
+        # Leanring rate scheduling
+        if epoch <= 5:
+            warmup_scheduler.step()
+        else:
+            # After the warmup period, apply the cosine annealing scheduler
+            scheduler.step()
 
         model.train()
         tic = time.time()
@@ -260,8 +287,7 @@ def main():
         val_avg_loss = val_avg_loss / len(test_loader)
         print(f"Epoch: {epoch}, val_acc: {val_accuracy:.2f}%, val_loss: {val_avg_loss:.4f}")
 
-        # Leanring rate scheduling
-        scheduler.step()
+        
 
         # Use tensorboard to record the validation acc and loss
         writer.add_scalar('Acc/val', val_accuracy, epoch) # adds val acc
