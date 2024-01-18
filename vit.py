@@ -246,6 +246,7 @@ def main():
     """
     # Create the model instance
     model = ViT()
+    model.apply_zero_init() # Applies zero initialization to the ViT model
     model = model.to(device) # Sends the model to a selected device
     
     # Set information about the training process
