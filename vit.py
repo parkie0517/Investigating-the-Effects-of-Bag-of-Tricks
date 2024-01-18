@@ -6,18 +6,11 @@ import time
 import torch
 import argparse
 import torch.nn as nn
-import torchvision.transforms as tfs
+import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from timm.models.layers import trunc_normal_
 from torchvision.datasets.cifar import CIFAR10
 from tensorboardX import SummaryWriter
-
-# Tensorboard settings
-writer = SummaryWriter('./logs/vit/base') # Write training results in './logs/' directory ####
-
-# CUDA settings
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print("Using device:", device)
 
 
 """
@@ -152,65 +145,54 @@ class ViT(nn.Module):
 def main():
     # argparser
     parer = argparse.ArgumentParser()
-    parer.add_argument('--epoch', type=int, default=50)
-    parer.add_argument('--batch_size', type=int, default=128)
-    parer.add_argument('--lr', type=float, default=0.001)
-    parer.add_argument('--step_size', type=int, default=100)
-    parer.add_argument('--root', type=str, default='/root/datasets/ViT_practice/cifar10') # This is where the dataset is downloaded
+    parer.add_argument('--epoch', type=int, default=90)
+    parer.add_argument('--batch_size', type=int, default=256)
+    parer.add_argument('--lr', type=float, default=0.001) # this is the same as 1e-3
     parer.add_argument('--log_dir', type=str, default='./model') # define the path used for storing the saved models
     parer.add_argument('--name', type=str, default='vit_cifar10')
-    parer.add_argument('--rank', type=int, default=0)
     ops = parer.parse_args()
 
+    # Cuda setting
     device = torch.device('cuda:{}'.format(0) if torch.cuda.is_available() else 'cpu')
     print(f'currently using {device}')
 
+    # Tensorboard setting
+    writer = SummaryWriter('./logs/vit/base') # Writes training results in './logs/' directory ####
+
     """
-    3. Load CIFAR10 dataset
+        3. Load CIFAR10 dataset
     """
-    transform_cifar = tfs.Compose([
-        tfs.RandomCrop(32, padding=4),
-        tfs.RandomHorizontalFlip(),
-        tfs.ToTensor(),
-        tfs.Normalize(mean=(0.4914, 0.4822, 0.4465),
-                      std=(0.2023, 0.1994, 0.2010)),
+    transform_cifar = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
     ])
 
-    test_transform_cifar = tfs.Compose([tfs.ToTensor(),
-                                        tfs.Normalize(mean=(0.4914, 0.4822, 0.4465),
-                                                      std=(0.2023, 0.1994, 0.2010)),
-                                        ])
-    train_set = CIFAR10(root=ops.root,
-                        train=True,
-                        download=True,
-                        transform=transform_cifar)
+    test_transform_cifar = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.2010)),
+    ])
 
-    test_set = CIFAR10(root=ops.root,
-                       train=False,
-                       download=True,
-                       transform=test_transform_cifar)
+    train_set = CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=True, download=True, transform=transform_cifar)
+    test_set = CIFAR10(root='/root/datasets/ViT_practice/cifar10/', train=False, download=True, transform=test_transform_cifar)
+    train_loader = DataLoader(dataset=train_set, shuffle=True, batch_size=ops.batch_size, num_workers = 16)
+    test_loader = DataLoader(dataset=test_set, shuffle=False, batch_size=ops.batch_size, num_workers=16)
 
-    train_loader = DataLoader(dataset=train_set,
-                              shuffle=True,
-                              batch_size=ops.batch_size)
-
-    test_loader = DataLoader(dataset=test_set,
-                             shuffle=False,
-                             batch_size=ops.batch_size)
-
+    """
+        4. Load the model (already defined above)
+    """
     # Create the model instance
-    model = ViT().to(device)
+    model = ViT()
+    model = model.to(device) # Sends the model to a selected device
     
     # Set information about the training process
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(),
-                                 lr=ops.lr,
-                                 weight_decay=5e-5)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=ops.epoch, eta_min=1e-5)
-    os.makedirs(ops.log_dir, exist_ok=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=ops.lr, weight_decay=5e-5)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=ops.epoch, eta_min=1e-5) # eta_min is the value that becomes the final LR
 
     """
-    4. Training and Testing
+        5. Training and Testing
     """
     print("training...")
     for epoch in range(ops.epoch):
@@ -220,18 +202,18 @@ def main():
         for idx, (img, target) in enumerate(train_loader):
             img = img.to(device)  # [N, 3, 32, 32]
             target = target.to(device)  # [N]
-            # output, attn_mask = model(img, True)  # [N, 10]
+
+            optimizer.zero_grad()
             output = model(img)  # [N, 10]
             loss = criterion(output, target)
 
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
             for param_group in optimizer.param_groups:
                 lr = param_group['lr']
 
-
+        """
         # Save the trained models
         save_path = os.path.join(ops.log_dir, ops.name, 'saves')
         os.makedirs(save_path, exist_ok=True)
@@ -242,6 +224,7 @@ def main():
                       'scheduler_state_dict': scheduler.state_dict()}
 
         torch.save(checkpoint, os.path.join(save_path, ops.name + '.{}.pth.tar'.format(epoch)))
+        """
 
         # Test the model performance
         print('Validation of epoch [{}]'.format(epoch))
