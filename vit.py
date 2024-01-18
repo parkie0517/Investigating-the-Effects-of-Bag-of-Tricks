@@ -156,8 +156,7 @@ def main():
     device = torch.device('cuda:{}'.format(0) if torch.cuda.is_available() else 'cpu')
     print(f'currently using {device}')
 
-    # Tensorboard setting
-    writer = SummaryWriter('./logs/vit/base') # Writes training results in './logs/' directory ####
+    
 
     """
         3. Load CIFAR10 dataset
@@ -207,8 +206,8 @@ def main():
             output = model(img)  # [N, 10]
             loss = criterion(output, target)
 
-            loss.backward()
-            optimizer.step()
+            loss.backward() # Calculates the gradients for updates
+            optimizer.step() # Updates the parameters
 
             for param_group in optimizer.param_groups:
                 lr = param_group['lr']
@@ -238,6 +237,7 @@ def main():
                 model.eval()
                 img = img.to(device)  # [N, 3, 32, 32]
                 target = target.to(device)  # [N]
+
                 output = model(img)  # [N, 10]
                 loss = criterion(output, target)
 
@@ -258,13 +258,14 @@ def main():
 
         scheduler.step()
         # Use tensorboard to record the validation acc and loss
-        writer.add_scalar('valudation accuracy', accuracy, epoch) # use add_scalar() function to write
-        writer.add_scalar('valudation loss', val_avg_loss, epoch)
+        writer.add_scalar('Acc/val', accuracy*100, epoch) # use add_scalar() function to write
+        writer.add_scalar('Loss/val', val_avg_loss, epoch)
     writer.flush()
     
 
 
 if __name__ == '__main__':
-    writer = SummaryWriter('./logs/') # Write training results in './logs/' directory
+    # Tensorboard setting
+    writer = SummaryWriter('./logs/vit/basic') # Writes training results in './logs/' directory
     main()
     writer.close() # Must include this code when finish training results
