@@ -245,8 +245,8 @@ def main():
         4. Load the model (already defined above)
     """
     # Create the model instance
-    model = ViT()
-    model.apply_zero_init() # Applies zero initialization to the ViT model
+    model = ViT(drop_rate=0.1, attn_drop_rate=0.1) # Applies dropout in the MLP and MHSA
+    # model.apply_zero_init() # Applies zero initialization to the ViT model
     model = model.to(device) # Sends the model to a selected device
     
     # Set information about the training process
@@ -332,6 +332,6 @@ def main():
 
 if __name__ == '__main__':
     # Tensorboard setting
-    writer = SummaryWriter('./logs/vit/basic+cosine+warm+label+mixup+zero') # Writes training results in './logs/' directory
+    writer = SummaryWriter('./logs/vit/basic+cosine+warm+label+mixup+drop') # Writes training results in './logs/' directory
     main()
     writer.close() # Must include this code when finish training results
