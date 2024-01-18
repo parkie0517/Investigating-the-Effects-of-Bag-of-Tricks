@@ -145,7 +145,7 @@ class ViT(nn.Module):
 def main():
     # argparser
     parer = argparse.ArgumentParser()
-    parer.add_argument('--epoch', type=int, default=90)
+    parer.add_argument('--epoch', type=int, default=100)
     parer.add_argument('--batch_size', type=int, default=256)
     parer.add_argument('--lr', type=float, default=0.001) # this is the same as 1e-3
     parer.add_argument('--log_dir', type=str, default='./model') # define the path used for storing the saved models
@@ -226,7 +226,7 @@ def main():
         """
 
         # Test the model performance
-        print('Validation of epoch [{}]'.format(epoch))
+        #print('Validation of epoch [{}]'.format(epoch))
         model.eval()
         correct = 0
         val_avg_loss = 0
@@ -248,19 +248,17 @@ def main():
                 total += target.size(0)
                 val_avg_loss += loss.item()
 
-        print('Epoch {} test : '.format(epoch))
-        accuracy = correct / total
-        print("accuracy : {:.4f}%".format(accuracy * 100.))
-
+        val_accuracy = (correct / total) * 100
         val_avg_loss = val_avg_loss / len(test_loader)
-        print("avg_loss : {:.4f}".format(val_avg_loss))
+        print(f"Epoch: {epoch}, val_acc: {val_accuracy:.2f}%, val_loss: {val_avg_loss:.4f}")
 
-
+        # Leanring rate scheduling
         scheduler.step()
+
         # Use tensorboard to record the validation acc and loss
-        writer.add_scalar('Acc/val', accuracy*100, epoch) # use add_scalar() function to write
-        writer.add_scalar('Loss/val', val_avg_loss, epoch)
-    writer.flush()
+        writer.add_scalar('Acc/val', val_accuracy, epoch) # adds val acc
+        writer.add_scalar('Loss/val', val_avg_loss, epoch) # adds val loss
+        writer.flush() # inclue this line so that results are properly written in the disk
     
 
 
