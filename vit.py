@@ -332,6 +332,6 @@ def main():
 
 if __name__ == '__main__':
     # Tensorboard setting
-    writer = SummaryWriter('./logs/vit/basic+cosine+warm+label+mixup') # Writes training results in './logs/' directory
+    writer = SummaryWriter('./logs/vit/basic+cosine+warm+label+mixup+zero') # Writes training results in './logs/' directory
     main()
     writer.close() # Must include this code when finish training results
