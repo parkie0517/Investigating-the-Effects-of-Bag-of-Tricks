@@ -1,5 +1,5 @@
 """
-    1. Import Libraries
+    1. Import Libraries and do some settings
 """
 import os
 import time
@@ -11,6 +11,13 @@ from torch.utils.data import DataLoader
 from timm.models.layers import trunc_normal_
 from torchvision.datasets.cifar import CIFAR10
 from tensorboardX import SummaryWriter
+
+# Tensorboard settings
+writer = SummaryWriter('./logs/base+cosine+warmup+mixup+dropout(0.2)+zero') # Write training results in './logs/' directory ####
+
+# CUDA settings
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
 
 
 """
