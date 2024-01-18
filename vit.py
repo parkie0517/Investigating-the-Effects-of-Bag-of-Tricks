@@ -135,6 +135,10 @@ class ViT(nn.Module):
         # Reduce the dimension to num of classes for classifying
         self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
+    def apply_zero_init(self):
+        for block in self.blocks.children():
+            nn.init.zeros_(block.norm2.weight)
+
     def forward(self, x):
         x = self.patch_embed(x)
         x = self.blocks(x)
