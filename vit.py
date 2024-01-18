@@ -193,8 +193,8 @@ def mixup_data(x, y, alpha=1.0, use_cuda=True):
         index = torch.randperm(batch_size)
 
     mixed_x = lam * x + (1 - lam) * x[index, :]
-    mixed_y = lam * y + (1 - lam) * y[index]
-    return mixed_x, mixed_y, lam
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam # Returns mixed inputs, pairs of targets, and lambda values
 
 def mixup_criterion(criterion, pred, y_a, y_b, lam):
     """
@@ -327,6 +327,6 @@ def main():
 
 if __name__ == '__main__':
     # Tensorboard setting
-    writer = SummaryWriter('./logs/vit/basic+cosine+warm+label') # Writes training results in './logs/' directory
+    writer = SummaryWriter('./logs/vit/basic+cosine+warm+label+mixup') # Writes training results in './logs/' directory
     main()
     writer.close() # Must include this code when finish training results
