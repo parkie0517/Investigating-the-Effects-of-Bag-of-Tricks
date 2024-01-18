@@ -142,6 +142,21 @@ class ViT(nn.Module):
         x = self.head(x) # pass the first token into the classification head
         return x
 
+class LabelSmoothingCrossEntropy(nn.Module):
+    """
+        This is an implementation of a custom label smoothing code
+    """
+    def __init__(self, smoothing=0.1): # smoothing is the hyperparameter that adjusts the smoothing strength
+        super(LabelSmoothingCrossEntropy, self).__init__()
+        self.smoothing = smoothing
+
+    def forward(self, input, target):
+        log_prob = torch.nn.functional.log_softmax(input, dim=-1)
+        weight = input.new_ones(input.size()) * (self.smoothing / (input.size(-1) - 1))
+        weight.scatter_(-1, target.unsqueeze(-1), (1. - self.smoothing))
+        loss = (-weight * log_prob).sum(dim=-1).mean()
+        return loss
+
 def main():
     # argparser
     parer = argparse.ArgumentParser()
@@ -185,12 +200,17 @@ def main():
     model = model.to(device) # Sends the model to a selected device
     
     # Set information about the training process
-    criterion = nn.CrossEntropyLoss()
+    """
+        5. Choosing the loss function
+    """
+    # criterion = nn.CrossEntropyLoss() # Cross entropy loss
+    criterion = LabelSmoothingCrossEntropy(smoothing=0.1) # Label smoothing loss
+
     optimizer = torch.optim.Adam(model.parameters(), lr=ops.lr, weight_decay=5e-5)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=ops.epoch, eta_min=0) # eta_min is the value that becomes the final LR
 
     """
-        5. Training and Testing
+        6. Training and Testing
     """
     print("training...")
     for epoch in range(1, ops.epoch+1): # From 1 ~ ops.epoch
