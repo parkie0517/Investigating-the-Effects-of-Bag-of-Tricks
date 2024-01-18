@@ -148,7 +148,6 @@ def main():
     parer.add_argument('--epoch', type=int, default=100)
     parer.add_argument('--batch_size', type=int, default=256)
     parer.add_argument('--lr', type=float, default=0.001) # this is the same as 1e-3
-    parer.add_argument('--log_dir', type=str, default='./model') # define the path used for storing the saved models
     parer.add_argument('--name', type=str, default='vit_cifar10')
     ops = parer.parse_args()
 
@@ -188,13 +187,13 @@ def main():
     # Set information about the training process
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=ops.lr, weight_decay=5e-5)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=ops.epoch, eta_min=1e-5) # eta_min is the value that becomes the final LR
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=ops.epoch, eta_min=0) # eta_min is the value that becomes the final LR
 
     """
         5. Training and Testing
     """
     print("training...")
-    for epoch in range(ops.epoch):
+    for epoch in range(1, ops.epoch+1): # From 1 ~ ops.epoch
 
         model.train()
         tic = time.time()
@@ -211,19 +210,6 @@ def main():
 
             for param_group in optimizer.param_groups:
                 lr = param_group['lr']
-
-        """
-        # Save the trained models
-        save_path = os.path.join(ops.log_dir, ops.name, 'saves')
-        os.makedirs(save_path, exist_ok=True)
-
-        checkpoint = {'epoch': epoch,
-                      'model_state_dict': model.state_dict(),
-                      'optimizer_state_dict': optimizer.state_dict(),
-                      'scheduler_state_dict': scheduler.state_dict()}
-
-        torch.save(checkpoint, os.path.join(save_path, ops.name + '.{}.pth.tar'.format(epoch)))
-        """
 
         # Test the model performance
         #print('Validation of epoch [{}]'.format(epoch))
