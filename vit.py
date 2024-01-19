@@ -326,19 +326,19 @@ def main():
 
         val_accuracy = (correct / total) * 100
         val_avg_loss = val_avg_loss / len(test_loader)
-        print(f"Epoch: {epoch}, val_acc: {val_accuracy:.2f}%, val_loss: {val_avg_loss:.4f}")
-
+        mean_gamma = calculate_mean_gamma(model)
+        print(f"Epoch: {epoch}, val_acc: {val_accuracy:.2f}%, val_loss: {val_avg_loss:.4f}, mean_gamma: {mean_gamma:.4f}")
         
-
         # Use tensorboard to record the validation acc and loss
         writer.add_scalar('Acc/val', val_accuracy, epoch) # adds val acc
         writer.add_scalar('Loss/val', val_avg_loss, epoch) # adds val loss
+        writer.add_scalar('Misc/gamma', mean_gamma, epoch) # add the mean of the gamma value
         writer.flush() # inclue this line so that results are properly written in the disk
     
 
 
 if __name__ == '__main__':
     # Tensorboard setting
-    writer = SummaryWriter('./logs/vit/basic+cosine+warm+label+mixup') # Writes training results in './logs/' directory
+    writer = SummaryWriter('./logs/vit_test/basic+cosine+warm+label+mixup') # Writes training results in './logs/' directory
     main()
     writer.close() # Must include this code when finish training results
