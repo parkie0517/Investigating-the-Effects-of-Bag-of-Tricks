@@ -206,6 +206,13 @@ def mixup_criterion(criterion, pred, y_a, y_b, lam):
     """
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
+def calculate_mean_gamma(model):
+    gamma_values = []
+    for module in model.modules():
+        if isinstance(module, nn.LayerNorm):
+            gamma_values.append(module.weight.data.mean().item())
+    return np.mean(gamma_values)
+
 def main():
     # argparser
     parer = argparse.ArgumentParser()
