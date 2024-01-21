@@ -8,9 +8,11 @@ import torch.nn as nn # import torch.nn for defining and building neural network
 import torch.nn.functional as F # import functional for using the activation functions
 import torch.optim as optim # import torch.optim for using optimizers
 from tensorboardX import SummaryWriter # import tensorbardX which is used for visualing result 
+import numpy as np
 
 # Tensorboard settings
-writer = SummaryWriter('./logs/base+cosine+warmup') # Write training results in './logs/' directory
+writer = SummaryWriter('./logs/resnet/base+cosine+warmup+mixup+dropout(0.2)+zero') # Write training results in './logs/' directory ####
+
 
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -20,6 +22,26 @@ print("Using device:", device)
 """
 2. Load Dataset (CIFAR10)
 """
+def mixup(x, y, alpha=1.0, use_cuda=True):
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    batch_size = x.size()[0]
+    if use_cuda:
+        index = torch.randperm(batch_size).cuda()
+    else:
+        index = torch.randperm(batch_size)
+
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam # Returns mixed inputs, pairs of targets, and lambda values
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
+
 # Load and normalize CIFAR-10 with additional transformations
 transform_train = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
@@ -59,6 +81,7 @@ class BasicBlock(nn.Module):
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
+        self.bn2.weight.data.zero_() # initializes the gamma value to zero
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -89,6 +112,7 @@ class Bottleneck(nn.Module):
         self.conv3 = nn.Conv2d(planes, self.expansion *
                                planes, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(self.expansion*planes)
+        self.bn3.weight.data.zero_() # initializes the gamma value to zero
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -108,7 +132,7 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
+    def __init__(self, block, num_blocks, num_classes=10, dropout_rate=0.5): # Set default dropout_rate to 0.5
         super(ResNet, self).__init__()
         self.in_planes = 64
 
@@ -119,6 +143,7 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
+        self.dropout = nn.Dropout(dropout_rate) # Add a dropout layer!
         self.linear = nn.Linear(512*block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -137,11 +162,12 @@ class ResNet(nn.Module):
         out = self.layer4(out)
         out = F.avg_pool2d(out, 4)
         out = out.view(out.size(0), -1)
+        out = self.dropout(out) # Apply dropout!!
         out = self.linear(out)
         return out
 
 def ResNet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3])
+    return ResNet(Bottleneck, [3, 4, 6, 3], dropout_rate=0.2) # change the dropout rate to a different value. dropout=0 is the same as not applying any dropout.
 
 model = ResNet50() # Use cumtom made ResNet-50
 # model = torchvision.models.resnet50(weights=None).to(device) # Use pre-defined ResNet-50 
@@ -182,9 +208,10 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
 
 # LR Scheduler (Choose one from the bottom)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1) # Step Decay
+# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1) # Step Decay
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=90) # Cosine Decay
-# lr_warmup_scheduler = LRWarpup(optimizer, multiplier=1, total_epoch=5, after_scheduler=scheduler) # Learning Rate Warmup Scheduler
+lr_warmup_scheduler = LRWarpup(optimizer, multiplier=1, total_epoch=5, after_scheduler=scheduler) # Learning Rate Warmup Scheduler
+
 
 
 total_epoch = 90
@@ -204,21 +231,28 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     train_correct = 0
     train_step = 0
 
-    for step, batch in enumerate(trainloader):
-        batch[0], batch[1] = batch[0].to(device), batch[1].to(device) # Transfer the data to the device
+    for step, (inputs, targets) in enumerate(trainloader):
+        inputs, targets = inputs.to(device), targets.to(device) # Transfer the data to the device
+        # Apply mixup
+        mixed_inputs, targets_a, targets_b, lam = mixup(inputs, targets, alpha=1.0, use_cuda=True)
 
+        model.train() # 
         optimizer.zero_grad() # initialize the grdients to zero
 
-        outputs = model(batch[0]) # forward pass
-        loss = criterion(outputs, batch[1]) # calcuate the loss according to the output of the model
+        outputs = model(mixed_inputs) # forward pass
+
+        # calculate the loss!
+        # loss = criterion(outputs, batch[1]) # cross entropy loss
+        loss = mixup_criterion(criterion, outputs, targets_a, targets_b, lam) # mixup cross entropy loss
+        
         loss.backward() # calculate the gradients
         optimizer.step() # update the gradients
 
         train_loss += loss.item()
-        _, predict = outputs.max(1)
+        _, predicted = outputs.max(1)
         train_step += 1
-        train_cnt += batch[1].size(0) # count the total number of data
-        train_correct += predict.eq(batch[1]).sum().item()
+        train_cnt += targets.size(0) # count the total number of data
+        train_correct += (lam * predicted.eq(targets_a).sum().float() + (1 - lam) * predicted.eq(targets_b).sum().float()).item()
         """
         if step % 100 == 99: # print every 100 steps   
             print(f'Epoch: {epoch} ({step}/{len(trainloader)}), Train Acc: {100.0*train_correct/train_cnt:.2f}%, Train Loss: {train_loss/train_step:.4f}')
@@ -255,8 +289,8 @@ for epoch in range(1, total_epoch+1):  # loop over the dataset multiple times
     
     writer.flush() # make sure the results are written properly into the storage
 
-    scheduler.step() # updates the learning rate
-    # lr_warmup_scheduler.step() # Use lr warmup
+    # scheduler.step() # updates the learning rate
+    lr_warmup_scheduler.step() # Use lr warmup scheduler to update the learning rate
 
 writer.close() # close writing the results to the storage
 print('Finished Training')
