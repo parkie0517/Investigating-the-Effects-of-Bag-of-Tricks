@@ -216,7 +216,7 @@ def calculate_mean_gamma(model):
 def main():
     # argparser
     parer = argparse.ArgumentParser()
-    parer.add_argument('--epoch', type=int, default=90)
+    parer.add_argument('--epoch', type=int, default=1)
     parer.add_argument('--batch_size', type=int, default=256)
     parer.add_argument('--lr', type=float, default=0.001) # this is the same as 1e-3
     parer.add_argument('--name', type=str, default='vit_cifar10')
@@ -339,6 +339,6 @@ def main():
 
 if __name__ == '__main__':
     # Tensorboard setting
-    writer = SummaryWriter('./logs/vit_test/basic+cosine+warm+label+mixup+zero') # Writes training results in './logs/' directory
+    writer = SummaryWriter('./logs/vit_test/tesing') # Writes training results in './logs/' directory
     main()
     writer.close() # Must include this code when finish training results
