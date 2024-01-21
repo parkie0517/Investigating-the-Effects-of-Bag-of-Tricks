@@ -13,6 +13,7 @@ import numpy as np
 # Tensorboard settings
 writer = SummaryWriter('./logs/resnet/base+cosine+warmup+mixup+dropout(0.2)+zero') # Write training results in './logs/' directory ####
 
+
 # CUDA settings
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -210,6 +211,7 @@ optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-
 # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1) # Step Decay
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=90) # Cosine Decay
 lr_warmup_scheduler = LRWarpup(optimizer, multiplier=1, total_epoch=5, after_scheduler=scheduler) # Learning Rate Warmup Scheduler
+
 
 
 total_epoch = 90
