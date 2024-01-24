@@ -135,9 +135,12 @@ class ViT(nn.Module):
         # Reduce the dimension to num of classes for classifying
         self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
-    def apply_zero_init(self):
+    def apply_zero_init(self, first=False, second=False):
         for block in self.blocks.children():
-            nn.init.zeros_(block.norm2.weight)
+            if first:
+                nn.init.zeros_(block.norm1.weight) # applies zero init to the first LN layer
+            if second:
+                nn.init.zeros_(block.norm2.weight) # applies zero init to the second LN layer
 
     def forward(self, x):
         x = self.patch_embed(x)
@@ -253,7 +256,7 @@ def main():
     """
     # Create the model instance
     model = ViT(drop_rate=0.1, attn_drop_rate=0.0) # Applies dropout in the MLP and MHSA
-    model.apply_zero_init() # Applies zero initialization to the ViT model
+    model.apply_zero_init(True, True) # Applies zero initialization to the ViT model
     model = model.to(device) # Sends the model to a selected device
     
     # Set information about the training process
