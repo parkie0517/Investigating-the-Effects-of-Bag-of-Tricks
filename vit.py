@@ -219,7 +219,7 @@ def calculate_mean_gamma(model):
 def main():
     # argparser
     parer = argparse.ArgumentParser()
-    parer.add_argument('--epoch', type=int, default=1)
+    parer.add_argument('--epoch', type=int, default=90)
     parer.add_argument('--batch_size', type=int, default=256)
     parer.add_argument('--lr', type=float, default=0.001) # this is the same as 1e-3
     parer.add_argument('--name', type=str, default='vit_cifar10')
@@ -255,8 +255,8 @@ def main():
         4. Load the model (already defined above)
     """
     # Create the model instance
-    model = ViT(drop_rate=0.1, attn_drop_rate=0.0) # Applies dropout in the MLP and MHSA
-    model.apply_zero_init(True, True) # Applies zero initialization to the ViT model
+    model = ViT(drop_rate=0.0, attn_drop_rate=0.0) # Applies dropout in the MLP and MHSA
+    model.apply_zero_init(True, False) # Applies zero initialization to the ViT model
     model = model.to(device) # Sends the model to a selected device
     
     # Set information about the training process
@@ -342,6 +342,6 @@ def main():
 
 if __name__ == '__main__':
     # Tensorboard setting
-    writer = SummaryWriter('./logs/vit_test/tesing') # Writes training results in './logs/' directory
+    writer = SummaryWriter('./logs/vit_test/basic+cosine+warm+label+mixup+zero(first LN)') # Writes training results in './logs/' directory
     main()
     writer.close() # Must include this code when finish training results
