@@ -6,7 +6,7 @@ Diverse methods exist for enhancing the performance of deep neural networks. The
 
 ## View the full report
 The name of the pdf file is "Investigating the Effects of Bag of Tricks for Object Classification Models.pdf".  
-[report link](./Investigating the Effects of Bag of Tricks for Object Classification Models.pdf)
+[Open Report](./report_paper.pdf)  
 
 ## How to use the code
 Follow the simple steps to test it on your own!
