@@ -5,9 +5,8 @@ Investigating the Effects of Bag of Tricks for Object Classification Models: Res
 Diverse methods exist for enhancing the performance of deep neural networks. These include various data pre- processing techniques and training strategies, collectively referred to as a “bag of tricks”. The objective of this report is to identify optimal combinations of these tricks that can yield superior performance. These tricks were applied in combinations to two object classification mod- els: ResNet and Vision Transformer (ViT). When trained using the CIFAR-10 dataset with appropriate combinations of tricks, I observed performance improvements of 9.77% and 10.14% for ResNet-50 and ViT-B/4, respectively, com- pared to their baseline versions. Thus, this empirical study underscores the importance of using different combinations of tricks in developing deep neural networks, highlighting their impact on model efficacy.
 
 ## View the full report
-The report can be viwed by downloading the pdf file from my drive.  
 The name of the pdf file is "Investigating the Effects of Bag of Tricks for Object Classification Models.pdf".  
-https://drive.google.com/file/d/1pwk7WD8PPlMTbmxKyiC544wQfGuhoO-7/view?usp=sharing
+![report link](./Investigating the Effects of Bag of Tricks for Object Classification Models.pdf)
 
 ## How to use the code
 Follow the simple steps to test it on your own!
